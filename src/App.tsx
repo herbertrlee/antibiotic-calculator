@@ -18,6 +18,7 @@ function App() {
 
     const fetchAntibiotics = useCallback(async () => {
         const {data} = await supabase.from("antibiotic").select()
+        console.log(data)
         setAntibioticOptions(data?.map((antibiotic) => {
             return {label: antibiotic.name, value: antibiotic.id}
         }) ?? [])
