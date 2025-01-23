@@ -27,6 +27,8 @@ function App() {
         fetchAntibiotics()
     }, [fetchAntibiotics])
 
+    console.log(selectedAntibioticId)
+
     return (
         <>
             <div>
