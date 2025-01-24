@@ -1,53 +1,114 @@
-import { useCallback, useEffect, useState } from "react";
-import "./App.css";
-import { createClient } from "@supabase/supabase-js";
-import Select from "react-select";
+import { useCallback, useEffect, useState } from "react"
+import "./App.css"
+import { createClient } from "@supabase/supabase-js"
+import Select from "react-select"
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase.ts"
 
-const supabase = createClient(
-  "https://ipwagddgrsuwbwxdntpg.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwd2FnZGRncnN1d2J3eGRudHBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc2MDk3NDcsImV4cCI6MjA1MzE4NTc0N30.Ukpeh8P9Ap2d43pRiiSgCwqTZSi4dEP1ebRm7IinLI8",
-);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-type Option = {
-  label: string;
-  value: number;
-};
+type AntibioticOption = {
+  label: string
+  value: number
+}
+
+type State = {
+  antibioticId?: number
+}
 
 function App() {
-  const [antibioticOptions, setAntibioticOptions] = useState<Option[]>([]);
-  const [selectedAntibioticId, setSelectedAntibioticId] = useState<
-    number | null
-  >(null);
+  const [state, setState] = useState<State>({})
 
-  const fetchAntibiotics = useCallback(async () => {
-    const { data } = await supabase.from("antibiotic").select();
-    setAntibioticOptions(
-      data?.map((antibiotic) => {
-        return { label: antibiotic.name, value: antibiotic.id };
-      }) ?? [],
-    );
-  }, [setAntibioticOptions]);
-
-  useEffect(() => {
-    fetchAntibiotics();
-  }, [fetchAntibiotics]);
-
-  console.log(selectedAntibioticId);
+  const updateState = (update: State) => {
+    setState({
+      ...state,
+      ...update,
+    })
+  }
 
   return (
     <>
       <div>
-        <Select
-          options={antibioticOptions}
-          onChange={(newValue) => {
-            if (newValue) {
-              setSelectedAntibioticId(newValue.value);
-            }
-          }}
+        <h1>Antibiotic waste calculator</h1>
+        <p>
+          A tool to help doctors calculate the amount of plastic waste created
+          by an antibiotic regimen.
+        </p>
+        <AntibioticSelect
+          onSelect={(antibioticId) =>
+            updateState({ antibioticId: antibioticId })
+          }
         />
+        {state.antibioticId && (
+          <RouteSelect antibioticId={state.antibioticId} />
+        )}
+        <p>{state.antibioticId}</p>
       </div>
     </>
-  );
+  )
 }
 
-export default App;
+const AntibioticSelect = ({
+  onSelect,
+}: {
+  onSelect: (antibioticId: number) => void
+}) => {
+  const [antibioticOptions, setAntibioticOptions] = useState<
+    AntibioticOption[]
+  >([])
+
+  const fetchAntibiotics = useCallback(async () => {
+    const { data } = await supabase.from("antibiotic").select()
+    setAntibioticOptions(
+      data?.map((antibiotic) => {
+        return { label: antibiotic.name, value: antibiotic.id }
+      }) ?? [],
+    )
+  }, [setAntibioticOptions])
+
+  useEffect(() => {
+    fetchAntibiotics()
+  }, [fetchAntibiotics])
+
+  return antibioticOptions.length > 0 ? (
+    <Select
+      placeholder="Antibiotic"
+      options={antibioticOptions}
+      onChange={(newValue) => {
+        if (newValue) {
+          onSelect(newValue.value)
+        }
+      }}
+    />
+  ) : null
+}
+
+type RouteOption = {
+  label: string
+  value: string
+}
+
+const RouteSelect = ({ antibioticId }: { antibioticId: number }) => {
+  const [routeOptions, setRouteOptions] = useState<RouteOption[]>([])
+
+  const fetchRoutes = useCallback(async () => {
+    const { data } = await supabase
+      .from("regimen")
+      .select("route_of_administration, count()")
+      .eq("antibiotic_id", antibioticId)
+
+    setRouteOptions(
+      data?.map((result) => {
+        const route = result["route_of_administration"]
+        return { label: route, value: route }
+      }) ?? [],
+    )
+  }, [setRouteOptions, antibioticId])
+
+  useEffect(() => {
+    fetchRoutes()
+  }, [fetchRoutes])
+
+  return <Select placeholder="Route of administration" options={routeOptions} />
+}
+
+export default App
