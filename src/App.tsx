@@ -119,7 +119,7 @@ function App() {
         {perDoseLineItems.length > 0 && (
           <>
             <p>
-              Total plastic waste:{" "}
+              Total plastic waste per dose:{" "}
               {perDoseLineItems
                 .map((lineItem) => lineItem.unitCount * lineItem.wasteMgPerUnit)
                 .reduce((acc, value) => acc + value, 0)}{" "}
